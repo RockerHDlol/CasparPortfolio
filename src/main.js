@@ -11,6 +11,11 @@ const sizes = {
     height: window.innerHeight
 };
 
+const raycasterObjects = [];
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
 //Loadres
 const textureLoader = new THREE.TextureLoader();
 
@@ -40,9 +45,19 @@ Object.entries(textureMap).forEach(([key, paths])=>{
 });
 
 const scene = new THREE.Scene();
+
+window.addEventListener("mousemove", (e)=>{
+    pointer.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+	pointer.y = - ( e.clientY / window.innerHeight ) * 2 + 1; 
+})
+
 loader.load("/models/Room_Portfolio.glb", (glb)=> {
     glb.scene.traverse((child)=> {
         if(child.isMesh) {
+            if (child.name.includes("Raycaster")){
+                raycasterObjects.push(child);
+            }
+            
             Object.keys(textureMap).forEach((key) => {
                 if(child.name.includes(key)) {
                     const material = new THREE.MeshBasicMaterial({
@@ -78,8 +93,8 @@ const renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias: true });
 renderer.setSize( sizes.width, sizes.height );
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+// const geometry = new THREE.BoxGeometry( 1, 1, 1 );
+// const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
 
 
 const controls = new OrbitControls( camera, renderer.domElement );
@@ -113,9 +128,27 @@ const render = () =>{
     //  console.log("00000000000");
     //  console.log(controls.target);
 
+    // Raycaster
+
+    raycaster.setFromCamera( pointer, camera );
+
+	const intersects = raycaster.intersectObjects(raycasterObjects);
+
+	for ( let i = 0; i < intersects.length; i ++ ) {
+		intersects[ i ].object.material.color.set( 0xff0000 );
+	}
+
+    
+
+    if (intersects.length>0){
+        document.body.style.cursor = "pointer";
+    }else{
+        document.body.style.cursor = "default";
+    }
+
 	renderer.render( scene, camera );
 
-    window.requestAnimationFrame(render)
+    window.requestAnimationFrame(render);
 }
 
 render();
