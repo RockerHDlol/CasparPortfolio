@@ -12,6 +12,12 @@ const sizes = {
 };
 
 const raycasterObjects = [];
+let currentIntersects = [];
+
+const socialLinks = {
+    YouTube: "https://www.youtube.com",
+    Instagram: "https://www.instagram.com",
+}
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -132,19 +138,23 @@ const render = () =>{
 
     raycaster.setFromCamera( pointer, camera );
 
-	const intersects = raycaster.intersectObjects(raycasterObjects);
+	currentIntersects = raycaster.intersectObjects(raycasterObjects);
 
-	for ( let i = 0; i < intersects.length; i ++ ) {
-		intersects[ i ].object.material.color.set( 0xff0000 );
+	for ( let i = 0; i < currentIntersects.length; i ++ ) {
+		currentIntersects[ i ].object.material.color.set( 0xff0000 );
 	}
 
-    
+    if (currentIntersects.length > 0) {
+        const currentIntersectsObject = currentIntersects[0].object
 
-    if (intersects.length>0){
-        document.body.style.cursor = "pointer";
-    }else{
-        document.body.style.cursor = "default";
-    }
+        if(currentIntersectsObject.name.includes("Pointer")){
+                document.body.style.cursor = "pointer";
+            }else{
+                document.body.style.cursor = "default";
+            }
+        }else{
+            document.body.style.cursor = "default";
+        }
 
 	renderer.render( scene, camera );
 
