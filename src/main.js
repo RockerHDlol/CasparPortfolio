@@ -19,11 +19,29 @@ const modals = {
     contact: document.querySelector(".modal.contact"),
 };
 
+let touchHappened = false;
 document.querySelectorAll(".modal-exit-button").forEach(button=>{
-    button.addEventListener("click", (e)=>{
-        const modal = e.target.closest(".modal");
-        hideModal(modal);
-    });
+    button.addEventListener(
+        "touchend", 
+        (e)=>{
+            touchHappened = true
+            e.preventDefault();
+            const modal = e.target.closest(".modal");
+            hideModal(modal);
+        },
+        {passive: false}
+    );
+
+    button.addEventListener(
+        "click", 
+        (e)=>{
+            if (touchHappened) return;
+            e.preventDefault();
+            const modal = e.target.closest(".modal");
+            hideModal(modal);
+        },
+        {passive: false}
+    );
 });
 
 const showModal = (modal) => {
@@ -92,11 +110,31 @@ Object.entries(textureMap).forEach(([key, paths])=>{
 const scene = new THREE.Scene();
 
 window.addEventListener("mousemove", (e)=>{
+    touchHappened = false;
     pointer.x = ( e.clientX / window.innerWidth ) * 2 - 1;
 	pointer.y = - ( e.clientY / window.innerHeight ) * 2 + 1; 
 });
 
-window.addEventListener("click", (e)=>{
+window.addEventListener(
+    "touchstart", 
+    (e)=>{
+        e.preventDefault()
+        pointer.x = ( e.touches[0].clientX / window.innerWidth ) * 2 - 1;
+	    pointer.y = - ( e.touches[0].clientY / window.innerHeight ) * 2 + 1; 
+    }, 
+    {passive: false}
+);
+
+window.addEventListener(
+    "touchend", 
+    (e)=>{
+        e.preventDefault()
+        handleRaycasterInteraction()
+    }, 
+    {passive: false}
+);
+
+function handleRaycasterInteraction() {
     if(currentIntersects.length> 0) {
         const object = currentIntersects[0].object;
 
@@ -123,7 +161,10 @@ window.addEventListener("click", (e)=>{
         }
 
     }
-});
+}
+
+
+window.addEventListener("click", handleRaycasterInteraction);
 
 loader.load("/models/Room_Portfolio.glb", (glb)=> {
     glb.scene.traverse((child)=> {
