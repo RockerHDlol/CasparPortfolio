@@ -3,12 +3,50 @@ import './style.scss'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { color } from 'three/tsl';
+import gsap from "gsap"
 
 const canvas = document.querySelector("#experience-canvas")
 const sizes = {
     width: window.innerWidth,
     height: window.innerHeight
+};
+
+const modals = {
+    workPC: document.querySelector(".modal.workPC"),
+    workCamera: document.querySelector(".modal.workCamera"),
+    workEvent: document.querySelector(".modal.workEvent"),
+    aboutMe: document.querySelector(".modal.aboutMe"),
+    contact: document.querySelector(".modal.contact"),
+};
+
+document.querySelectorAll(".modal-exit-button").forEach(button=>{
+    button.addEventListener("click", (e)=>{
+        const modal = e.target.closest(".modal");
+        hideModal(modal);
+    });
+});
+
+const showModal = (modal) => {
+    modal.style.display = "block";
+
+    gsap.set(modal, {
+        opacity: 0
+    });
+
+    gsap.to(modal, {
+        opacity: 1,
+        duration: 0.5,
+    });
+};
+
+const hideModal = (modal) => {
+    gsap.to(modal, {
+        opacity: 0,
+        duration: 0.5,
+        onComplete: ()=>{
+            modal.style.display = "none";
+        },
+    });
 };
 
 const raycasterObjects = [];
@@ -17,6 +55,7 @@ let currentIntersects = [];
 const socialLinks = {
     YouTube: "https://www.youtube.com",
     Instagram: "https://www.instagram.com",
+    Artstaion: "https://www.artstation.com",
 }
 
 const raycaster = new THREE.Raycaster();
@@ -55,7 +94,36 @@ const scene = new THREE.Scene();
 window.addEventListener("mousemove", (e)=>{
     pointer.x = ( e.clientX / window.innerWidth ) * 2 - 1;
 	pointer.y = - ( e.clientY / window.innerHeight ) * 2 + 1; 
-})
+});
+
+window.addEventListener("click", (e)=>{
+    if(currentIntersects.length> 0) {
+        const object = currentIntersects[0].object;
+
+        Object.entries(socialLinks).forEach(([key, url]) =>{
+            if(object.name.includes(key)){
+                const newWindow = window.open();
+                newWindow.opener = null;
+                newWindow.location = url;
+                newWindow.target = "_blank";
+                newWindow.rel = "noopener noreferrer";
+            }
+        });
+
+        if (object.name.includes("WorkPC_Button")){
+            showModal(modals.workPC);
+        }else if (object.name.includes("workCamera_Button")){
+            showModal(modals.workCamera);
+        }else if (object.name.includes("workEvent_Button")){
+            showModal(modals.workEvent);
+        }else if (object.name.includes("aboutMe_Button")){
+            showModal(modals.aboutMe);
+        }else if (object.name.includes("contact_Button")){
+            showModal(modals.contact);
+        }
+
+    }
+});
 
 loader.load("/models/Room_Portfolio.glb", (glb)=> {
     glb.scene.traverse((child)=> {
