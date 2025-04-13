@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import './style.scss'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OrbitControls } from './utils/OrbitControls.js';
+// import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import gsap from "gsap"
@@ -44,8 +45,19 @@ document.querySelectorAll(".modal-exit-button").forEach(button=>{
     );
 });
 
+let isModalOpen = false;
+
 const showModal = (modal) => {
     modal.style.display = "block";
+    isModalOpen = true;
+    controls.enabled = false;
+
+    if(currentHoveredObject){
+        playHoverAnimation(currentHoveredObject, false)
+        currentHoveredObject = null
+    }
+    document.body.style.cursor = "default";
+    currentIntersects = [];
 
     gsap.set(modal, {
         opacity: 0
@@ -58,17 +70,21 @@ const showModal = (modal) => {
 };
 
 const hideModal = (modal) => {
+    isModalOpen = false;
+
     gsap.to(modal, {
         opacity: 0,
         duration: 0.5,
         onComplete: ()=>{
             modal.style.display = "none";
+            controls.enabled = true;
         },
     });
 };
 
 const raycasterObjects = [];
 let currentIntersects = [];
+let currentHoveredObject = null;
 
 const socialLinks = {
     YouTube: "https://www.youtube.com",
@@ -118,6 +134,7 @@ window.addEventListener("mousemove", (e)=>{
 window.addEventListener(
     "touchstart", 
     (e)=>{
+        if(isModalOpen) return;
         e.preventDefault()
         pointer.x = ( e.touches[0].clientX / window.innerWidth ) * 2 - 1;
 	    pointer.y = - ( e.touches[0].clientY / window.innerHeight ) * 2 + 1; 
@@ -128,6 +145,7 @@ window.addEventListener(
 window.addEventListener(
     "touchend", 
     (e)=>{
+        if(isModalOpen) return;
         e.preventDefault()
         handleRaycasterInteraction()
     }, 
@@ -148,15 +166,15 @@ function handleRaycasterInteraction() {
             }
         });
 
-        if (object.name.includes("WorkPC_Button")){
+        if (object.name.includes("workPC")){
             showModal(modals.workPC);
-        }else if (object.name.includes("workCamera_Button")){
+        }else if (object.name.includes("workCamera")){
             showModal(modals.workCamera);
-        }else if (object.name.includes("workEvent_Button")){
+        }else if (object.name.includes("workEvent")){
             showModal(modals.workEvent);
-        }else if (object.name.includes("aboutMe_Button")){
+        }else if (object.name.includes("aboutMe")){
             showModal(modals.aboutMe);
-        }else if (object.name.includes("contact_Button")){
+        }else if (object.name.includes("contact")){
             showModal(modals.contact);
         }
 
@@ -166,11 +184,30 @@ function handleRaycasterInteraction() {
 
 window.addEventListener("click", handleRaycasterInteraction);
 
+let grandma2,
+    poster1;
+
 loader.load("/models/Room_Portfolio.glb", (glb)=> {
-    glb.scene.traverse((child)=> {
+    glb.scene.traverse((child) => {
         if(child.isMesh) {
+
             if (child.name.includes("Raycaster")){
                 raycasterObjects.push(child);
+            };
+
+            if (child.name.includes("Hover")){
+                child.userData.initialScale = new THREE.Vector3().copy(child.scale);
+                child.userData.initialPosition = new THREE.Vector3().copy(child.position);
+                child.userData.initialRotation = new THREE.Euler().copy(child.rotation);
+            };
+
+            // Check für start animation
+            if (child.name.includes("AnimGrandMA")) {
+                grandma2 = child;
+                child.scale.set(0, 0, 0);
+            } else if (child.name.includes("AnimPoster1")) {
+                poster1 = child;
+                child.scale.set(0, 0, 0);
             }
             
             Object.keys(textureMap).forEach((key) => {
@@ -189,8 +226,28 @@ loader.load("/models/Room_Portfolio.glb", (glb)=> {
         }
     });
     scene.add(glb.scene);
+    playIntroAnimtion()
 });
 
+function playIntroAnimtion(){
+    const t1 = gsap.timeline({
+        defaults: {
+            duration: 0.8,
+            ease: "back.out(1.8)",
+        },
+    });
+
+    t1.to(grandma2.scale, {
+        x: 1,
+        y: 1,
+        z: 1,
+    },"-=0.4")
+    .to(poster1.scale, {
+        x: 1,
+        y: 1,
+        z: 1,
+    });
+}
 
 const camera = new THREE.PerspectiveCamera( 
     35, 
@@ -199,9 +256,9 @@ const camera = new THREE.PerspectiveCamera(
     1000 
 );
 camera.position.set(
-    7.117271355794427,
-    4.0791725040876425,
-    -3.780114521883597
+    7.292723393732943,
+    4.254425417965636,
+    -3.927931283958101
 );
 
 const renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias: true });
@@ -213,13 +270,21 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 
 const controls = new OrbitControls( camera, renderer.domElement );
+
+controls.minPolarAngle = Math.PI / 2.9;
+controls.maxPolarAngle = Math.PI / 2;
+controls.minAzimuthAngle = Math.PI / 5;
+controls.maxAzimuthAngle = Math.PI / 1.5;
+// controls.minDistance = 3.5;
+controls.maxDistance = 10;
+
 controls.enableDamping = true; 
-controls.dampingFactor = 0.05;
+controls.dampingFactor = 0.03;
 controls.update();
 controls.target.set(
-    5.880300046754647,
-    4.033743924770472,
-    -4.231677617667688
+    3.94312259152541,
+    3.833115424908893,
+    -4.81930484957838
 );
 
 // Event Listeners
@@ -236,36 +301,87 @@ window.addEventListener("resize", ()=>{
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
 
+function playHoverAnimation (object, isHovering){
+    gsap.killTweensOf(object.scale);
+    gsap.killTweensOf(object.rotation);
+    gsap.killTweensOf(object.position);
+
+    if(isHovering){
+        gsap.to(object.scale, {
+            x: object.userData.initialScale.x *1.2,
+            y: object.userData.initialScale.y *1.2,
+            z: object.userData.initialScale.z *1.2,
+            duration: 0.5,
+            ease: "bounce.out(1.8)",
+        });
+        gsap.to(object.rotation, {
+            x: object.userData.initialRotation.x *1.2,
+            duration: 0.5,
+            ease: "bounce.out(1.8)",
+        });
+    }else{
+        gsap.to(object.scale, {
+            x: object.userData.initialScale.x,
+            y: object.userData.initialScale.y,
+            z: object.userData.initialScale.z,
+            duration: 0.3,
+            ease: "bounce.out(1.8)",
+        });
+        gsap.to(object.rotation, {
+            x: object.userData.initialRotation.x,
+            duration: 0.3,
+            ease: "bounce.out(1.8)",
+        });
+    }
+};
+
 const render = () =>{
     controls.update();
 
-    //  console.log(camera.position);
-    //  console.log("00000000000");
-    //  console.log(controls.target);
+    // console.log(camera.position);
+    // console.log("00000000000");
+    // console.log(controls.target);
 
     // Raycaster
+    if(!isModalOpen){
 
-    raycaster.setFromCamera( pointer, camera );
+        raycaster.setFromCamera( pointer, camera );
 
-	currentIntersects = raycaster.intersectObjects(raycasterObjects);
+        currentIntersects = raycaster.intersectObjects(raycasterObjects);
 
-	for ( let i = 0; i < currentIntersects.length; i ++ ) {
-		currentIntersects[ i ].object.material.color.set( 0xff0000 );
-	}
+        for ( let i = 0; i < currentIntersects.length; i ++ ) {}
 
-    if (currentIntersects.length > 0) {
-        const currentIntersectsObject = currentIntersects[0].object
+        if (currentIntersects.length > 0) {
+            const currentIntersectObject = currentIntersects[0].object;
 
-        if(currentIntersectsObject.name.includes("Pointer")){
-                document.body.style.cursor = "pointer";
-            }else{
-                document.body.style.cursor = "default";
+            if (currentIntersectObject.name.includes("Hover")) {
+                if(currentIntersectObject !== currentHoveredObject){
+
+                    if(currentHoveredObject){
+                        playHoverAnimation(currentHoveredObject, false);
+                    }
+
+                    playHoverAnimation(currentIntersectObject, true);
+                    currentHoveredObject = currentIntersectObject;
+                }
             }
-        }else{
-            document.body.style.cursor = "default";
+
+            if(currentIntersectObject.name.includes("Pointer")){
+                    document.body.style.cursor = "pointer";
+                }else{
+                    document.body.style.cursor = "default";
+                }
+            }else{
+                if(currentHoveredObject){
+                    playHoverAnimation(currentHoveredObject, false);
+                    currentHoveredObject = null;
+                }
+                document.body.style.cursor = "default";
         }
 
-	renderer.render( scene, camera );
+    }
+
+	renderer.render(scene, camera);
 
     window.requestAnimationFrame(render);
 }
